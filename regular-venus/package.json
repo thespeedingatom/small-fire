@@ -1,0 +1,29 @@
+{
+  "name": "launch-sphere",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "deploy": "astro build && wrangler pages deploy dist"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@astrojs/react": "^4.2.1",
+    "@astrojs/sitemap": "^3.2.1",
+    "@tailwindcss/vite": "^4.0.9",
+    "astro": "^5.4.1",
+    "astro-icon": "^1.1.5",
+    "daisyui": "^5.0.0",
+    "fulldev-ui": "^0.6.5",
+    "openai": "^4.86.1",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.0.9"
+  }
+}

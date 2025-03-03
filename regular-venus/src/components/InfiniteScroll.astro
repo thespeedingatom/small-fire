@@ -1,0 +1,152 @@
+---
+// InfiniteScroll.astro - Component for implementing infinite scrolling
+---
+
+<div id="infinite-scroll-container" class="w-full">
+  <div id="infinite-scroll-content">
+    <slot />
+  </div>
+  <div id="infinite-scroll-loader" class="py-8 flex justify-center items-center hidden">
+    <span class="loading loading-spinner loading-md"></span>
+  </div>
+  <div id="infinite-scroll-end" class="py-12 text-center hidden">
+    <p class="text-base-content opacity-60">You've reached the end of the feed</p>
+  </div>
+</div>
+
+<script>
+  // Define types for news items
+  interface NewsItem {
+    id: number;
+    title: string;
+    summary: string;
+    date: string;
+    url: string;
+  }
+
+  interface ApiResponse {
+    items: NewsItem[];
+    hasMore: boolean;
+    total: number;
+  }
+
+  // Configuration
+  const config = {
+    offset: 10, // Initial offset (should match the initial items loaded on the server)
+    limit: 5,   // Number of items to load per request
+    threshold: 200, // Distance from bottom (in px) to trigger loading more items
+    loadingDelay: 500, // Simulated loading delay in ms (for better UX)
+  };
+
+  // State
+  let isLoading = false;
+  let hasMore = true;
+  let currentOffset = config.offset;
+
+  // DOM Elements
+  const container = document.getElementById('infinite-scroll-container');
+  const content = document.getElementById('infinite-scroll-content');
+  const loader = document.getElementById('infinite-scroll-loader');
+  const endMessage = document.getElementById('infinite-scroll-end');
+
+  // Function to check if we need to load more content
+  function checkScroll() {
+    if (isLoading || !hasMore) return;
+    
+    const scrollPosition = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // If we're close to the bottom, load more content
+    if (documentHeight - (scrollPosition + windowHeight) < config.threshold) {
+      loadMoreContent();
+    }
+  }
+
+  // Function to load more content
+  async function loadMoreContent() {
+    try {
+      isLoading = true;
+      if (loader) loader.classList.remove('hidden');
+      
+      // Simulate network delay for better UX
+      await new Promise(resolve => setTimeout(resolve, config.loadingDelay));
+      
+      // Fetch more news items
+      const response = await fetch(`/api/news?offset=${currentOffset}&limit=${config.limit}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch more news: ${response.status}`);
+      }
+      
+      const data = await response.json() as ApiResponse;
+      
+      // Update state
+      hasMore = data.hasMore;
+      currentOffset += data.items.length;
+      
+      // Append new items to the DOM
+      if (data.items.length > 0) {
+        appendNewsItems(data.items);
+      }
+      
+      // Show end message if no more items
+      if (!hasMore && endMessage) {
+        endMessage.classList.remove('hidden');
+      }
+    } catch (error) {
+      console.error('Error loading more content:', error);
+      // Show error message to user
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'text-center py-4 text-red-500';
+      errorMsg.textContent = 'Failed to load more content. Please try again later.';
+      if (content) content.appendChild(errorMsg);
+    } finally {
+      isLoading = false;
+      if (loader) loader.classList.add('hidden');
+    }
+  }
+
+  // Function to create and append news items to the DOM
+  function appendNewsItems(items: NewsItem[]) {
+    items.forEach((item: NewsItem) => {
+      // Create a new news card element using DaisyUI classes
+      const newsCard = document.createElement('div');
+      newsCard.className = 'card w-full max-w-3xl mx-auto bg-base-100 border-b border-base-300 rounded-none';
+      newsCard.innerHTML = `
+        <div class="card-body">
+          <h2 class="card-title text-2xl">${item.title}</h2>
+          <p class="py-4">
+            ${item.summary}
+          </p>
+          <div class="card-actions justify-between items-center">
+            <a 
+              href="${item.url}" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="btn btn-link px-0"
+            >
+              Read more
+            </a>
+            <span class="text-sm opacity-70">${item.date}</span>
+          </div>
+        </div>
+      `;
+      
+      // Add to the feed container
+      const feedContainer = document.querySelector('.flex-col');
+      if (feedContainer) {
+        feedContainer.appendChild(newsCard);
+      }
+    });
+  }
+
+  // Add scroll event listener
+  window.addEventListener('scroll', checkScroll);
+
+  // Initial check in case the page doesn't have a scrollbar yet
+  window.addEventListener('load', () => {
+    // Wait a bit for everything to render
+    setTimeout(checkScroll, 500);
+  });
+</script>

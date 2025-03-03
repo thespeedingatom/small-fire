@@ -1,0 +1,118 @@
+---
+import { getSummarizedNews } from '../services/rssService.js';
+import { getConfig } from '../utils/config.js';
+import { formatDate, generateId, normalizeNewsItem, isValidArray, getErrorMessage } from '../utils/utils.js';
+import Layout from '../layouts/Layout.astro';
+import NewsCard from '../components/NewsCard.astro';
+import NavBar from '../components/NavBar.astro';
+import ErrorMessage from '../components/ErrorMessage.astro';
+import LoadingSpinner from '../components/LoadingSpinner.astro';
+import InfiniteScroll from '../components/InfiniteScroll.astro';
+import InfiniteScrollWithFilters from '../components/InfiniteScrollWithFilters.astro';
+
+// Define types for RSS items
+interface RssItem {
+  title?: string;
+  description?: string;
+  content?: string;
+  link?: string;
+  pubDate?: string;
+  summary?: string;
+  [key: string]: any;
+}
+
+// Define type for normalized news item
+interface NormalizedNewsItem {
+  id: number;
+  title: string;
+  summary: string;
+  date: string;
+  url: string;
+}
+
+// Define type for news result with pagination
+interface NewsResult {
+  items: RssItem[];
+  hasMore: boolean;
+  total: number;
+}
+
+// Initialize config and validate
+const config = getConfig();
+let newsResult: NewsResult = { items: [], hasMore: false, total: 0 };
+let errorMessage = '';
+
+try {
+  // Get initial batch of news with pagination
+  const initialLimit = 10; // Initial number of items to load
+  newsResult = await getSummarizedNews(undefined, initialLimit, 0) as NewsResult;
+  
+  if (!isValidArray(newsResult.items)) {
+    errorMessage = 'Unable to fetch news items. Please try again later.';
+  }
+} catch (error) {
+  errorMessage = getErrorMessage(error as Error, 'An unexpected error occurred while fetching news. Please try again later.');
+}
+---
+
+<Layout title="Launch Sphere - AI Product Launch News" 
+description="Discover the latest AI product launches and tech updates from Launch Sphere."
+>
+<!-- Structured Data (unchanged) -->
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Launch Sphere - AI Product Launch News",
+    "description": "Latest AI product launch news and updates from Launch Sphere",
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": [
+        {
+          newsResult.items.map((item, index) => ({
+            "@type": "NewsArticle",
+            "position": index + 1,
+            "headline": item.title || "Untitled",
+            "datePublished": item.pubDate || "Unknown",
+            "articleBody": item.summary || item.description || "No summary available",
+            "url": item.link || "#"
+          }))
+        }
+      ]
+    }
+  }
+</script>
+
+<!-- Replace old header with Navbar -->
+<NavBar />
+
+<!-- Main Content -->
+<main class="container mx-auto" id="main-content">
+  {errorMessage ? (
+    <section class="px-4 py-8">
+      <ErrorMessage message={errorMessage} />
+    </section>
+  ) : !isValidArray(newsResult.items) ? (
+    <section class="px-4 py-8 flex justify-center">
+      <LoadingSpinner />
+    </section>
+  ) : (
+    <InfiniteScrollWithFilters>
+      <section class="flex flex-col items-center" aria-label="Latest AI Product Launch News">
+      {newsResult.items.map((item: RssItem) => {
+        const normalizedItem = normalizeNewsItem(item) as NormalizedNewsItem;
+        return <NewsCard news={normalizedItem} />;
+      })}
+      </section>
+    </InfiniteScrollWithFilters>
+  )}
+  <noscript>
+    <p>Latest news is temporarily unavailable. Please check back later or enable JavaScript.</p>
+  </noscript>
+</main>
+
+<!-- Footer -->
+<footer class="footer footer-center p-6 border-t border-base-300 text-base-content">
+  <p class="text-sm">© {new Date().getFullYear()} Launch Sphere. All rights reserved.</p>
+</footer>
+</Layout>

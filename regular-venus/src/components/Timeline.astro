@@ -1,0 +1,32 @@
+---
+interface TimelineItem {
+  date: string;
+  title: string;
+  id: number;
+}
+
+interface Props {
+  items: TimelineItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<ul class="timeline timeline-vertical">
+  {items.map((item, index) => (
+    <li>
+      <div class="timeline-start">{item.date}</div>
+      <div class="timeline-middle">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-primary">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5.5a.75.75 0 001.5 0V5z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="timeline-end timeline-box">
+        <a href={`#news-${item.id}`} class="hover:text-primary transition-colors">
+          {item.title.length > 25 ? `${item.title.substring(0, 25)}...` : item.title}
+        </a>
+      </div>
+      {index < items.length - 1 && <hr/>}
+    </li>
+  ))}
+</ul>

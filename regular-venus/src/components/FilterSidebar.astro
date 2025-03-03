@@ -1,0 +1,216 @@
+---
+// FilterSidebar.astro - Component for filtering newsfeed content using daisyUI components
+---
+
+<div class="card bg-base-200 shadow-sm sticky top-4 w-full">
+  <div class="card-body p-3">
+    <h2 class="card-title text-base mb-2">Filter News</h2>
+    
+    <!-- Search Filter -->
+    <div class="form-control w-full mb-4">
+      <div class="flex input-group w-full">
+        <input type="text" placeholder="Search..." class="input" />
+        <button class="btn btn-square btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    
+    <!-- Sort Order Filter -->
+    <div class="collapse collapse-arrow bg-base-100 mb-2">
+      <input type="checkbox" checked /> 
+      <div class="collapse-title font-medium">
+        Sort By
+      </div>
+      <div class="collapse-content"> 
+        <select id="sort-filter" class="select select-bordered w-full">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="relevance">Most Relevant</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- Categories Filter -->
+    <div class="collapse collapse-arrow bg-base-100 mb-2">
+      <input type="checkbox" checked /> 
+      <div class="collapse-title font-medium">
+        Categories
+      </div>
+      <div class="collapse-content"> 
+        <div class="flex flex-col gap-2">
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" value="ai" checked />
+            <span class="label-text">AI</span>
+          </label>
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" value="ml" checked />
+            <span class="label-text">Machine Learning</span>
+          </label>
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" value="product" checked />
+            <span class="label-text">Products</span>
+          </label>
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" value="startup" checked />
+            <span class="label-text">Startups</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sources Filter -->
+    <div class="collapse collapse-arrow bg-base-100 mb-4">
+      <input type="checkbox" checked /> 
+      <div class="collapse-title font-medium">
+        Sources
+      </div>
+      <div class="collapse-content"> 
+        <div class="flex flex-col gap-2">
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" value="techcrunch" checked />
+            <span class="label-text">TechCrunch</span>
+          </label>
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" value="wired" checked />
+            <span class="label-text">Wired</span>
+          </label>
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" value="venturebeat" checked />
+            <span class="label-text">VentureBeat</span>
+          </label>
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" value="other" checked />
+            <span class="label-text">Other Sources</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Apply/Reset Buttons -->
+    <div class="flex gap-2 mt-2">
+      <button id="apply-filters" class="btn btn-primary flex-1">
+        Apply Filters
+      </button>
+      <button id="reset-filters" class="btn btn-outline flex-1">
+        Reset
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Define filter state type
+  interface FilterState {
+    search: string;
+    sortOrder: string;
+    categories: string[];
+    sources: string[];
+  }
+
+  // Filter state
+  let filterState: FilterState = {
+    search: '',
+    sortOrder: 'newest',
+    categories: ['ai', 'ml', 'product', 'startup'],
+    sources: ['techcrunch', 'wired', 'venturebeat', 'other']
+  };
+
+  // DOM Elements
+  const searchInput = document.getElementById('search-filter') as HTMLInputElement;
+  const sortSelect = document.getElementById('sort-filter') as HTMLSelectElement;
+  const categoryCheckboxes = document.querySelectorAll('input[type="checkbox"][value^="ai"], input[type="checkbox"][value^="ml"], input[type="checkbox"][value^="product"], input[type="checkbox"][value^="startup"]') as NodeListOf<HTMLInputElement>;
+  const sourceCheckboxes = document.querySelectorAll('input[type="checkbox"][value^="techcrunch"], input[type="checkbox"][value^="wired"], input[type="checkbox"][value^="venturebeat"], input[type="checkbox"][value^="other"]') as NodeListOf<HTMLInputElement>;
+  const applyButton = document.getElementById('apply-filters');
+  const resetButton = document.getElementById('reset-filters');
+  const searchButton = document.querySelector('.input-group .btn-square');
+
+  // Event Listeners
+  applyButton?.addEventListener('click', applyFilters);
+  resetButton?.addEventListener('click', resetFilters);
+  searchButton?.addEventListener('click', applyFilters);
+  searchInput?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      applyFilters();
+    }
+  });
+
+  // Apply filters function
+  function applyFilters() {
+    // Update filter state
+    filterState = {
+      search: searchInput.value,
+      sortOrder: sortSelect.value,
+      categories: Array.from(categoryCheckboxes)
+        .filter(checkbox => checkbox.checked)
+        .map(checkbox => checkbox.value),
+      sources: Array.from(sourceCheckboxes)
+        .filter(checkbox => checkbox.checked)
+        .map(checkbox => checkbox.value)
+    };
+
+    // Dispatch custom event with filter data
+    const filterEvent = new CustomEvent('newsFiltersChanged', {
+      detail: filterState,
+      bubbles: true
+    });
+    document.dispatchEvent(filterEvent);
+    
+    // Add visual feedback
+    if (applyButton) {
+      applyButton.classList.add('btn-active');
+      setTimeout(() => {
+        applyButton.classList.remove('btn-active');
+      }, 300);
+    }
+  }
+
+  // Reset filters function
+  function resetFilters() {
+    // Reset form inputs
+    searchInput.value = '';
+    sortSelect.value = 'newest';
+    
+    // Reset all checkboxes
+    categoryCheckboxes.forEach(checkbox => {
+      checkbox.checked = true;
+    });
+    
+    sourceCheckboxes.forEach(checkbox => {
+      checkbox.checked = true;
+    });
+
+    // Reset filter state
+    filterState = {
+      search: '',
+      sortOrder: 'newest',
+      categories: ['ai', 'ml', 'product', 'startup'],
+      sources: ['techcrunch', 'wired', 'venturebeat', 'other']
+    };
+
+    // Dispatch reset event
+    const resetEvent = new CustomEvent('newsFiltersReset', {
+      detail: filterState,
+      bubbles: true
+    });
+    document.dispatchEvent(resetEvent);
+    
+    // Add visual feedback
+    if (resetButton) {
+      resetButton.classList.add('btn-active');
+      setTimeout(() => {
+        resetButton.classList.remove('btn-active');
+      }, 300);
+    }
+  }
+
+  // Initialize by applying default filters
+  window.addEventListener('load', () => {
+    // Small delay to ensure everything is loaded
+    setTimeout(applyFilters, 500);
+  });
+</script>
+</script>

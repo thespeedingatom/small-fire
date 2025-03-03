@@ -1,0 +1,32 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+
+// Props for customization (optional)
+const { isSticky = true, paddingSize = '2' } = Astro.props;
+
+// Improved class structure for better alignment
+const navbarClasses = `navbar bg-base-100 border-b border-base-300 ${isSticky ? 'sticky top-0 z-50' : ''}`;
+---
+
+<nav class={navbarClasses}>
+  <div class="container mx-auto flex px-4 py-2">
+    <!-- Brand Name (Centered on larger screens) -->
+    <div class="hidden lg:flex items-center navbar justifyflex-1">
+      <a href="/" class={`normal-case text-xl p-${paddingSize}`} aria-label="Launch Sphere Home">
+        <span class="font-bold text-primary text-2xl">Launch Sphere</span>
+      </a>
+    </div>
+
+    <!-- Theme Toggle (aligned to the right) -->
+    <div class="justify-end flex">
+      <ThemeToggle />
+    </div>
+
+    <!-- Brand Name (Visible on smaller screens) -->
+    <div class="jusitfy-center lg:hidden flex-1">
+      <a href="/" class={`normal-case text-xl p-${paddingSize}`} aria-label="Launch Sphere Home">
+        <span class="font-bold text-primary text-2xl">Launch Sphere</span>
+      </a>
+    </div>
+  </div>
+</nav>

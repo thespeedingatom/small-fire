@@ -1,0 +1,325 @@
+---
+// InfiniteScrollWithTimeline.astro - Component for implementing infinite scrolling with a timeline
+import FilterSidebar from './FilterSidebar.astro';
+---
+
+<div class="container mx-auto px-4 py-8">
+  <div class="flex flex-col lg:flex-row gap-6">
+    <!-- Filter Sidebar (hidden on mobile) -->
+    <div class="hidden lg:block w-64">
+      <FilterSidebar />
+    </div>
+
+    <!-- Timeline section -->
+    <div class="hidden lg:block w-48 relative">
+      <ul class="timeline timeline-vertical">
+        <slot name="timeline-items" />
+      </ul>
+    </div>
+
+    <!-- News content section -->
+    <div class="flex-1">
+      <!-- Mobile Filter Toggle -->
+      <div class="lg:hidden mb-4">
+        <button class="btn btn-primary w-full" id="mobile-filter-toggle">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filter News
+        </button>
+        
+        <!-- Mobile Filter Drawer -->
+        <div class="drawer-side z-50 fixed inset-0 hidden" id="mobile-filter-drawer">
+          <label for="mobile-filter-toggle" class="drawer-overlay"></label> 
+          <div class="p-4 w-80 min-h-full bg-base-200">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-bold">Filters</h3>
+              <button class="btn btn-sm btn-circle" id="close-mobile-filter">✕</button>
+            </div>
+            <FilterSidebar />
+          </div>
+        </div>
+      </div>
+      
+      <div id="infinite-scroll-container" class="w-full">
+        <div id="infinite-scroll-content">
+          <slot />
+        </div>
+        <div id="infinite-scroll-loader" class="py-8 flex justify-center items-center hidden">
+          <span class="loading loading-spinner loading-md"></span>
+        </div>
+        <div id="infinite-scroll-end" class="py-12 text-center hidden">
+          <p class="text-base-content opacity-60">You've reached the end of the feed</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+  <script>
+    // Define types for news items
+    interface NewsItem {
+      id: number;
+      title: string;
+      summary: string;
+      date: string;
+      url: string;
+    }
+  
+    interface ApiResponse {
+      items: NewsItem[];
+      hasMore: boolean;
+      total: number;
+    }
+  
+    // Configuration
+    const config = {
+      offset: 10, // Initial offset (should match the initial items loaded on the server)
+      limit: 5,   // Number of items to load per request
+      threshold: 200, // Distance from bottom (in px) to trigger loading more items
+      loadingDelay: 500, // Simulated loading delay in ms (for better UX)
+    };
+  
+    // State
+    let isLoading = false;
+    let hasMore = true;
+    let currentOffset = config.offset;
+  
+    // DOM Elements
+    const container = document.getElementById('infinite-scroll-container');
+    const content = document.getElementById('infinite-scroll-content');
+    const loader = document.getElementById('infinite-scroll-loader');
+    const endMessage = document.getElementById('infinite-scroll-end');
+  
+    // Function to check if we need to load more content
+    function checkScroll() {
+      if (isLoading || !hasMore) return;
+      
+      const scrollPosition = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // If we're close to the bottom, load more content
+      if (documentHeight - (scrollPosition + windowHeight) < config.threshold) {
+        loadMoreContent();
+      }
+    }
+  
+  // Current filter state
+  let currentFilters = {
+    search: '',
+    dateFrom: '',
+    dateTo: '',
+    sortOrder: 'newest',
+    categories: ['ai', 'ml', 'product', 'startup'],
+    sources: ['techcrunch', 'wired', 'venturebeat', 'other']
+  };
+
+  // Function to load more content
+  async function loadMoreContent() {
+    try {
+      isLoading = true;
+      if (loader) loader.classList.remove('hidden');
+      
+      // Simulate network delay for better UX
+      await new Promise(resolve => setTimeout(resolve, config.loadingDelay));
+      
+      // Build query parameters including filters
+      const queryParams = new URLSearchParams({
+        offset: currentOffset.toString(),
+        limit: config.limit.toString()
+      });
+      
+      // Add filter parameters if they exist
+      if (currentFilters.search) queryParams.append('search', currentFilters.search);
+      if (currentFilters.dateFrom) queryParams.append('dateFrom', currentFilters.dateFrom);
+      if (currentFilters.dateTo) queryParams.append('dateTo', currentFilters.dateTo);
+      if (currentFilters.sortOrder) queryParams.append('sortOrder', currentFilters.sortOrder);
+      if (currentFilters.categories.length > 0) {
+        queryParams.append('categories', currentFilters.categories.join(','));
+      }
+      if (currentFilters.sources.length > 0) {
+        queryParams.append('sources', currentFilters.sources.join(','));
+      }
+      
+      // Fetch more news items with filters
+      const response = await fetch(`/api/news?${queryParams.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch more news: ${response.status}`);
+      }
+      
+      const data = await response.json() as ApiResponse;
+      
+      // Update state
+      hasMore = data.hasMore;
+      currentOffset += data.items.length;
+      
+      // Append new items to the DOM
+      if (data.items.length > 0) {
+        appendNewsItems(data.items);
+      } else if (currentOffset === config.offset) {
+        // No results for initial load with filters
+        const noResultsMsg = document.createElement('div');
+        noResultsMsg.className = 'alert alert-info my-4';
+        noResultsMsg.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>No news items match your filters. Try adjusting your filter criteria.</span>
+        `;
+        if (content) content.appendChild(noResultsMsg);
+      }
+      
+      // Show end message if no more items
+      if (!hasMore && endMessage) {
+        endMessage.classList.remove('hidden');
+      }
+    } catch (error) {
+      console.error('Error loading more content:', error);
+      // Show error message to user
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'alert alert-error my-4';
+      errorMsg.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span>Failed to load more content. Please try again later.</span>
+      `;
+      if (content) content.appendChild(errorMsg);
+    } finally {
+      isLoading = false;
+      if (loader) loader.classList.add('hidden');
+    }
+  }
+  
+    // Function to create and append news items to the DOM
+    function appendNewsItems(items: NewsItem[]) {
+      // Get the timeline container
+      const timelineContainer = document.querySelector('.timeline');
+      
+      items.forEach((item: NewsItem) => {
+        // Create news card
+        const newsCard = document.createElement('div');
+        newsCard.className = 'card w-full max-w-3xl mx-auto bg-base-100 border border-base-300 rounded-lg overflow-hidden hover:border-primary transition-all duration-200 mb-6';
+        newsCard.innerHTML = `
+          <div class="card-body p-0">
+            <!-- Card Header with improved styling -->
+            <div class="bg-base-200 p-3 flex items-center justify-between border-b border-base-300">
+              <div class="flex items-center gap-2">
+                <div class="badge badge-primary">News</div>
+                <h2 class="font-bold text-lg md:text-xl line-clamp-1">${item.title}</h2>
+              </div>
+            </div>
+            
+            <!-- Card Content -->
+            <div class="p-4">
+              <p class="text-base-content/80 text-sm md:text-base leading-relaxed mb-4">
+                ${item.summary}
+              </p>
+            </div>
+            
+            <!-- Card Footer -->
+            <div class="bg-base-200 p-3 flex items-center justify-between border-t border-base-300">
+              <div class="flex items-center gap-2">
+                <button class="btn btn-ghost btn-xs gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  <span>Like</span>
+                </button>
+                
+                <button class="btn btn-ghost btn-xs gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span>Comment</span>
+                </button>
+              </div>
+              
+              <a 
+                href="${item.url}" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="btn btn-primary btn-sm rounded-full"
+              >
+                Read more
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        `;
+        
+        // Add to the feed container
+        const feedContainer = content;
+        if (feedContainer) {
+          feedContainer.appendChild(newsCard);
+        }
+        
+        // Add timeline item if timeline exists
+        if (timelineContainer) {
+          const timelineItem = document.createElement('li');
+          timelineItem.innerHTML = `
+            <div class="timeline-start">${item.date}</div>
+            <div class="timeline-middle">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-primary">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5.5a.75.75 0 001.5 0V5z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="timeline-end timeline-box">${item.title.substring(0, 30)}...</div>
+            <hr/>
+          `;
+          timelineContainer.appendChild(timelineItem);
+        }
+      });
+    }
+  
+  // Function to reload content with new filters
+  function reloadWithFilters(filters) {
+    // Update current filters
+    currentFilters = filters;
+    
+    // Reset state
+    isLoading = false;
+    hasMore = true;
+    currentOffset = 0;
+    
+    // Clear existing content
+    if (content) content.innerHTML = '';
+    if (endMessage) endMessage.classList.add('hidden');
+    
+    // Load content with new filters
+    loadMoreContent();
+  }
+
+  // Handle filter events
+  document.addEventListener('newsFiltersChanged', (event) => {
+    const filters = (event as CustomEvent).detail;
+    reloadWithFilters(filters);
+  });
+
+  document.addEventListener('newsFiltersReset', (event) => {
+    const filters = (event as CustomEvent).detail;
+    reloadWithFilters(filters);
+  });
+
+  // Mobile filter drawer functionality
+  const mobileFilterToggle = document.getElementById('mobile-filter-toggle');
+  const mobileFilterDrawer = document.getElementById('mobile-filter-drawer');
+  const closeMobileFilter = document.getElementById('close-mobile-filter');
+
+  mobileFilterToggle?.addEventListener('click', () => {
+    mobileFilterDrawer?.classList.toggle('hidden');
+  });
+
+  closeMobileFilter?.addEventListener('click', () => {
+    mobileFilterDrawer?.classList.add('hidden');
+  });
+
+  // Add scroll event listener
+  window.addEventListener('scroll', checkScroll);
+
+  // Initial check in case the page doesn't have a scrollbar yet
+  window.addEventListener('load', () => {
+    // Wait a bit for everything to render
+    setTimeout(checkScroll, 500);
+  });
+  </script>

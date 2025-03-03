@@ -1,0 +1,18 @@
+---
+interface Props {
+  message?: string;
+  title?: string;
+}
+
+const { 
+  message = "We encountered an error while fetching the latest AI product launches. Please try again later.",
+  title = "Unable to Load News"
+} = Astro.props;
+---
+
+<div class="alert alert-error max-w-3xl mx-auto">
+  <div>
+    <h2 class="font-bold">{title}</h2>
+    <p>{message}</p>
+  </div>
+</div>

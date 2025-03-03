@@ -1,0 +1,71 @@
+---
+interface Props {
+  news: {
+    id: number;
+    title: string;
+    summary: string;
+    date: string;
+    url: string;
+  };
+  showInTimeline?: boolean;
+}
+
+const { news, showInTimeline = true } = Astro.props;
+---
+
+<div class="card w-full max-w-3xl mx-auto bg-base-100 border border-base-300 rounded-lg overflow-hidden hover:border-primary transition-all duration-200 mb-6">
+  <div class="card-body p-0">
+    <!-- Card Header with improved styling -->
+    <div class="bg-base-200 p-3 flex items-center justify-between border-b border-base-300">
+      <div class="flex items-center gap-2">
+        <div class="badge badge-primary">News</div>
+        <h2 class="font-bold text-lg md:text-xl line-clamp-1">{news.title}</h2>
+      </div>
+      <!-- Date is now only visible on mobile since it will be in the timeline on desktop -->
+      <span class="text-xs text-base-content/70 lg:hidden">{news.date}</span>
+    </div>
+    
+    <!-- Card Content -->
+    <div class="p-4">
+      <p class="text-base-content/80 text-sm md:text-base leading-relaxed mb-4">
+        {news.summary}
+      </p>
+    </div>
+    
+    <!-- Card Footer -->
+    <div class="bg-base-200 p-3 flex items-center justify-between border-t border-base-300">
+      <div class="flex items-center gap-2">
+        <!-- You could add interaction buttons here (like, comment, etc.) -->
+        <button class="btn btn-ghost btn-xs gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          <span>Like</span>
+        </button>
+        
+        <button class="btn btn-ghost btn-xs gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span>Comment</span>
+        </button>
+      </div>
+      
+      <a 
+        href={news.url} 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        class="btn btn-primary btn-sm rounded-full"
+      >
+        Read more
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+{showInTimeline && (
+  <span class="hidden" id={`timeline-date-${news.id}`} data-date={news.date} data-title={news.title}></span>
+)}

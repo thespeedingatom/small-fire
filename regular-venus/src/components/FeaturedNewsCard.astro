@@ -1,0 +1,56 @@
+---
+// Define type for normalized news item
+interface NormalizedNewsItem {
+  id: number;
+  title: string;
+  summary: string;
+  date: string;
+  url: string;
+}
+
+interface Props {
+  news: NormalizedNewsItem;
+}
+
+const { news } = Astro.props;
+---
+
+<div class="card card-compact bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+  <a href={news.url} target="_blank" rel="noopener noreferrer" class="block">
+    <figure class="relative">
+      <img 
+        src={`/placeholder.svg?height=400&width=800&text=${encodeURIComponent(news.title)}`} 
+        alt={news.title}
+        class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+      />
+      <div class="badge badge-primary absolute top-4 left-4">
+        Featured
+      </div>
+    </figure>
+    
+    <div class="card-body">
+      <div class="flex items-center text-sm opacity-70 mb-2">
+        <time datetime={news.date}>{news.date}</time>
+        <span class="mx-2">•</span>
+        <span>AI Product</span>
+      </div>
+      
+      <h2 class="card-title text-xl hover:text-primary transition-colors">
+        {news.title}
+      </h2>
+      
+      <p class="line-clamp-3 mb-4">
+        {news.summary}
+      </p>
+      
+      <div class="card-actions justify-end">
+        <button class="btn btn-primary btn-sm">
+          Read more
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </a>
+</div>
